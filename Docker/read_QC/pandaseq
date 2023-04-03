@@ -1,0 +1,27 @@
+FROM ubuntu:20.04
+LABEL maintainer="Schuyler Smith <schuyler.smith@nutrien.com>"
+
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+        ca-certificates \
+        wget \
+        zip unzip \
+        make autoconf automake pkg-config build-essential \
+        zlib1g-dev libbz2-dev libltdl-dev libtool \
+    && apt-get upgrade --yes \
+    && apt-get clean
+
+WORKDIR /opt
+ENV PATH="${PATH}:/opt/"
+
+ARG PROGRAM="pandaseq"
+ARG VERSION=""
+RUN wget https://github.com/neufeld/pandaseq/archive/master.zip \
+    && unzip master.zip \
+    && mv ${PROGRAM}-master ${PROGRAM} \
+    && cd ${PROGRAM} \
+    && ./autogen.sh && ./configure && make && make install && ldconfig
+ENV PATH="${PATH}:/opt/${PROGRAM}/"
+
+CMD ["/bin/bash"]

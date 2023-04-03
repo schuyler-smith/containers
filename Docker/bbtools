@@ -1,0 +1,26 @@
+FROM ubuntu:20.04
+LABEL maintainer="Schuyler Smith <schuyler-smith.github.io>"
+
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+        ca-certificates \
+        wget \
+        zip unzip \
+        default-jre-headless \
+        perl \
+    && apt-get upgrade --yes \
+    && apt-get clean
+
+WORKDIR /opt
+ENV PATH="${PATH}:/opt/"
+
+ARG PROGRAM="bbmap"
+ARG VERSION="39.01"
+RUN wget https://sourceforge.net/projects/bbmap/files/BBMap_${VERSION}.tar.gz/download \
+    -O ${PROGRAM}.tar.gz \
+    && tar -xzf ${PROGRAM}.tar.gz \
+    && rm -r ${PROGRAM}.tar.gz
+ENV PATH="${PATH}:/opt/${PROGRAM}/"
+
+CMD ["/bin/bash"]
