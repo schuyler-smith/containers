@@ -1,0 +1,47 @@
+FROM ubuntu:20.04
+LABEL maintainer="Schuyler Smith <schuyler-smith.github.io>"
+
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+        ca-certificates \
+        wget \
+        curl \
+        zip unzip\
+        less \
+        perl \
+        perl-doc \
+        libgomp1 \
+    && apt-get upgrade --yes \
+    && apt-get clean
+
+WORKDIR /opt
+ENV PATH="${PATH}:/opt/"
+
+ARG PROGRAM="blast"
+ARG VERSION="2.13.0"
+RUN wget https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-${VERSION}+-x64-linux.tar.gz \
+    -O ${PROGRAM}.tar.gz \
+    && tar xzf ${PROGRAM}.tar.gz \
+    && rm ${PROGRAM}.tar.gz \
+    && mv ncbi-blast-* ${PROGRAM}
+ENV PATH="${PATH}:/opt/${PROGRAM}/bin"
+
+RUN wget https://ftp.ncbi.nih.gov/entrez/entrezdirect/edirect.tar.gz \
+    && tar xzf edirect.tar.gz \
+    && rm edirect.tar.gz
+RUN wget https://ftp.ncbi.nih.gov/entrez/entrezdirect/xtract.Linux.gz \
+    && gunzip xtract.Linux.gz \
+    && chmod +x xtract.Linux \
+    && mv xtract.Linux edirect
+RUN wget https://ftp.ncbi.nih.gov/entrez/entrezdirect/transmute.Linux.gz \
+    && gunzip transmute.Linux.gz \
+    && chmod +x transmute.Linux \
+    && mv transmute.Linux edirect
+RUN wget https://ftp.ncbi.nih.gov/entrez/entrezdirect/rchive.Linux.gz \
+    && gunzip rchive.Linux.gz \
+    && chmod +x rchive.Linux \
+    && mv rchive.Linux edirect
+ENV PATH="${PATH}:/opt/edirect"
+
+CMD ["/bin/bash"]
