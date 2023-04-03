@@ -1,0 +1,29 @@
+FROM ubuntu:20.04
+LABEL maintainer="Schuyler Smith <schuyler-smith.github.io>"
+
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+        ca-certificates \
+        wget \
+        zip unzip gzip \
+        default-jre-headless \
+        perl \
+    && apt-get upgrade --yes \
+    && apt-get clean
+
+WORKDIR /opt
+ENV PATH="${PATH}:/opt/"
+
+ARG PROGRAM="Trimmomatic"
+ARG VERSION="0.39"
+RUN wget https://github.com/usadellab/Trimmomatic/files/5854859/Trimmomatic-${VERSION}.zip \
+    -O ${PROGRAM}.zip \
+    && unzip ${PROGRAM}.zip \
+    && rm -rf ${PROGRAM}.zip \
+    && echo '#!/bin/bash' > trimmomatic \
+    && echo "java -jar ${PWD}/${PROGRAM}-${VERSION}/trimmomatic-${VERSION}.jar \${@}" >> trimmomatic \
+    && chmod +x trimmomatic \
+    && cp -r ${PROGRAM}-${VERSION}/adapters ./
+
+CMD ["/bin/bash"]
