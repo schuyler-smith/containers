@@ -1,0 +1,28 @@
+FROM ubuntu:20.04
+LABEL maintainer="Schuyler Smith <schuyler-smith.github.io>"
+
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update \
+    && apt-get install --yes \
+        ca-certificates \
+        wget \
+        zip unzip\
+        make \
+    && apt-get upgrade --yes \
+    && apt-get clean
+
+WORKDIR /opt
+ENV PATH="${PATH}:/opt/"
+
+RUN wget https://software-ab.informatik.uni-tuebingen.de/download/megan6/MEGAN_Ultimate_unix_6_24_1.sh \
+    --no-check-certificate \
+    -O install-megan6.sh \
+    && chmod a+x install-megan6.sh \
+    && echo "o\n1\n\ny\n\ny\ny\ny\ny\ny\ny\n5\n80000\n" > /tmp/megan_install_v6 \
+    && ./install-megan6.sh < /tmp/megan_install_v6 \
+    && rm install-megan6.sh
+ENV PATH="${PATH}:/opt/megan/:/opt/megan/tools/"
+
+
+CMD ["/bin/bash"]
+

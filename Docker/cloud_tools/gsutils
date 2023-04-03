@@ -1,0 +1,25 @@
+FROM ubuntu:20.04
+LABEL maintainer="Schuyler Smith <schuyler-smith.github.io>"
+
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+        ca-certificates \
+        curl wget \
+        zip unzip \
+        default-jdk default-jre \
+        less nano \
+    && apt-get upgrade --yes \
+    && apt-get clean
+
+WORKDIR /opt
+
+RUN wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-413.0.0-linux-x86_64.tar.gz \
+    -O google-cloud-cli.tar.gz \
+    && tar -xf google-cloud-cli.tar.gz \
+    && ./google-cloud-sdk/install.sh \
+    && ./google-cloud-sdk/bin/gcloud components update
+ENV PATH="${PATH}:/opt/google-cloud-sdk/bin"
+
+CMD ["/bin/bash"]
+

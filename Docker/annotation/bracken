@@ -1,0 +1,39 @@
+FROM ubuntu:20.04
+LABEL maintainer="Schuyler Smith <schuyler.smith@nutrien.com>"
+
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+        ca-certificates \
+        wget \
+        zip unzip \
+        libbz2-dev \
+        g++ \
+        make \
+        python3-dev \
+    && apt-get upgrade --yes \
+    && apt-get clean
+
+RUN wget https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip \
+    -O awscliv2.zip \
+    && unzip awscliv2.zip \
+    && ./aws/install \
+    && rm awscliv2.zip
+
+WORKDIR /opt
+ENV PATH="${PATH}:/opt/"
+
+ARG PROGRAM="bracken"
+ARG VERSION=""
+RUN wget https://github.com/jenniferlu717/Bracken/archive/master.tar.gz \
+    -O ${PROGRAM}.tar.gz \
+    && tar -xzf ${PROGRAM}.tar.gz \
+    && rm ${PROGRAM}.tar.gz \
+    && mv Bracken-master ${PROGRAM} \
+    && cd ${PROGRAM} \
+    && bash install_bracken.sh
+ENV PATH="${PATH}:/opt/${PROGRAM}/"
+
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
+CMD ["/bin/bash"]

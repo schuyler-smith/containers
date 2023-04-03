@@ -1,0 +1,28 @@
+FROM ubuntu:20.04
+LABEL maintainer="Schuyler Smith <schuyler-smith.github.io>"
+
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+        ca-certificates \
+        wget \
+        zip unzip \
+        libffi-dev \
+        python3-dev \
+        python3-pip \
+        gcc-x86-64-linux-gnu \
+    && apt-get upgrade --yes \
+    && apt-get clean
+
+RUN pip3 install \
+    pandas \
+    numpy \ 
+    biom-format \
+    kraken-biom
+
+WORKDIR /opt
+ENV PATH="${PATH}:/opt/"
+
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
+CMD ["/bin/bash"]

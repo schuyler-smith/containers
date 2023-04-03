@@ -1,5 +1,5 @@
-FROM ubuntu:20.04
-LABEL maintainer="Schuyler Smith <schuyler.smith@nutrien.com>"
+  FROM ubuntu:20.04
+LABEL maintainer="Schuyler Smith <schuyler-smith.github.io>"
 
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update \
