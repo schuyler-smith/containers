@@ -1,0 +1,38 @@
+FROM ubuntu:20.04
+
+RUN apt-get update \
+  && apt-get install --yes --no-install-recommends \
+    ca-certificates \
+    build-essential \
+    zip unzip\
+    wget \
+    openjdk-11-jre-headless \
+  && apt-get upgrade --yes \
+  && apt-get clean
+
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+
+
+WORKDIR /opt
+ENV PATH="${PATH}:/opt/"
+
+ARG PROGRAM="openrefine"
+ARG VERSION="3.8.2"
+RUN wget https://github.com/OpenRefine/OpenRefine/releases/download/${VERSION}/openrefine-linux-${VERSION}.tar.gz \
+  -O ${PROGRAM}.tar.gz \
+  && tar -xzf ${PROGRAM}.tar.gz \
+  && mv ${PROGRAM}-${VERSION} ${PROGRAM} \
+  && rm -r ${PROGRAM}.tar.gz
+
+ENV PATH="${PATH}:/opt/${PROGRAM}/"
+
+
+ENV IP=0.0.0.0
+ENV PORT=3333
+EXPOSE ${PORT}
+
+RUN echo '#!/bin/sh' > /usr/local/bin/open_refine \
+  && echo "refine -i ${IP} -p ${PORT}" >> /usr/local/bin/open_refine \
+  && chmod +x /usr/local/bin/open_refine
+
+CMD ["open_refine"]
