@@ -1,0 +1,191 @@
+FROM gcr.io/deeplearning-platform-release/workbench-container:latest
+# FROM ubuntu:20.04
+# ENV DEBIAN_FRONTEND=noninteractive
+ENV R_VERSION=4.4.2
+#     software-properties-common \
+#     dirmngr \
+#     default-jre-headless \
+#     zlib1g-dev  libltdl-dev libtool \
+#     perl \
+    # pkg-config \
+
+
+RUN apt-get update -qq \
+  && apt-get install --yes --no-install-recommends \
+    wget curl \
+    make cmake \
+    autoconf automake \
+    zip unzip gzip \
+    build-essential \
+    gfortran \
+    libreadline-dev \
+    xorg-dev \
+    libbz2-dev \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    liblzma-dev \
+    libpcre2-dev \ 
+  && apt-get upgrade --yes \
+  && apt-get clean
+
+RUN apt-get install --no-install-recommends --yes \
+    locales \
+  && apt-get upgrade --yes; apt-get clean \
+  && echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen \
+  && locale-gen en_US.utf8 \
+  && /usr/sbin/update-locale LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+ENV LANG=en_US.UTF-8
+
+RUN wget -c --no-check-certificate https://cran.r-project.org/src/base/R-4/R-${R_VERSION}.tar.gz \
+  && tar -xf R-${R_VERSION}.tar.gz \
+  && cd R-${R_VERSION} \
+  && ./configure \
+  && make -j$(nproc) \
+  && make install \
+  && cd .. \
+  && rm -rf R-${R_VERSION} R-${R_VERSION}.tar.gz
+
+# R Package Install Functions
+RUN echo "#!/usr/bin/env Rscript" > /usr/local/bin/import_r_cl_packages \
+  && echo "import_r_cl_packages <- function(args) {" >> /usr/local/bin/import_r_cl_packages \
+  && echo "args <- gsub(\"'\", \"\", args)" >> /usr/local/bin/import_r_cl_packages \
+  && echo "args <- gsub(\" \", \"\", args)" >> /usr/local/bin/import_r_cl_packages \
+  && echo "packages <- unlist(strsplit(args, \",\"))" >> /usr/local/bin/import_r_cl_packages \
+  && echo "return(packages)}" >> /usr/local/bin/import_r_cl_packages
+
+RUN echo "#!/usr/bin/env Rscript" > /usr/local/bin/check_r_packages \
+  && echo "source('/usr/local/bin/import_r_cl_packages')" >> /usr/local/bin/check_r_packages \
+  && echo "check_r_packages <- function(x) {missing <- setdiff(x, rownames(installed.packages()))" >> /usr/local/bin/check_r_packages \
+  && echo "  if (length(missing) > 0) stop('Missing: ', paste(missing, collapse=', '))" >> /usr/local/bin/check_r_packages \
+  && echo "  else cat(paste(x, 'installed successfully\n'))}" >> /usr/local/bin/check_r_packages \
+  && echo "packages = import_r_cl_packages(commandArgs(trailingOnly=TRUE)[1])" >> /usr/local/bin/check_r_packages \
+  && echo "check_r_packages(packages)" >> /usr/local/bin/check_r_packages \
+  && chmod +x /usr/local/bin/check_r_packages
+
+RUN echo "#!/usr/bin/env Rscript" > /usr/local/bin/install_r_packages \
+  && echo "source('/usr/local/bin/import_r_cl_packages')" >> /usr/local/bin/install_r_packages \
+  && echo "packages = import_r_cl_packages(commandArgs(trailingOnly=TRUE)[1])" >> /usr/local/bin/install_r_packages \
+  && echo "install.packages(packages, repos='http://cran.rstudio.com/')" >> /usr/local/bin/install_r_packages \
+  && chmod +x /usr/local/bin/install_r_packages
+
+RUN apt-get install --no-install-recommends --yes \
+    git ca-certificates \
+  && apt-get upgrade --yes; apt-get clean
+RUN install_r_packages 'remotes' \
+  && check_r_packages 'remotes'
+
+# Install R Kernel - requires jupyter-client
+ENV R_PACKAGES="'repr', 'evaluate', 'crayon', 'uuid', 'pbdZMQ', 'IRdisplay'"
+RUN install_r_packages "${R_PACKAGES}" \
+  && check_r_packages "${R_PACKAGES}"
+RUN R -e 'remotes::install_github("IRkernel/IRkernel")' \
+  && R -e 'IRkernel::installspec(user = FALSE)'
+
+ENV R_PACKAGES="'data.table', 'plyr', 'reshape2', 'rjson'"
+RUN install_r_packages "${R_PACKAGES}" \
+  && check_r_packages "${R_PACKAGES}"
+
+RUN apt-get install --no-install-recommends --yes \
+  libssl-dev \
+&& apt-get upgrade --yes; apt-get clean
+RUN install_r_packages 'plotly' \
+&& check_r_packages 'plotly'
+
+ENV R_PACKAGES="'knitr', 'markdown', 'rmarkdown', 'grDevices'"
+RUN install_r_packages "${R_PACKAGES}" \
+  && check_r_packages "${R_PACKAGES}"
+
+RUN apt-get install --no-install-recommends --yes \
+    libharfbuzz-dev libfribidi-dev libfreetype6-dev \
+    libpng-dev libtiff5-dev libjpeg-dev libxml2-dev \
+  && apt-get upgrade --yes; apt-get clean
+RUN install_r_packages 'tidyverse' \
+  && check_r_packages 'tidyverse'
+
+RUN apt-get install --no-install-recommends --yes \
+  libssl-dev \
+&& apt-get upgrade --yes; apt-get clean
+ENV R_PACKAGES="'RSQLite', 'Rcrawler', 'DescTools', 'ggtext', 'showtext'"
+RUN install_r_packages "${R_PACKAGES}" \
+  && check_r_packages "${R_PACKAGES}"
+
+ENV R_PACKAGES="'igraph', 'dendextend', 'ggraph'"
+RUN install_r_packages "${R_PACKAGES}" \
+  && check_r_packages "${R_PACKAGES}"
+
+ENV R_PACKAGES="'RColorBrewer', 'viridis', 'viridisLite'"
+RUN install_r_packages "${R_PACKAGES}" \
+  && check_r_packages "${R_PACKAGES}"
+
+ENV R_PACKAGES="'gridExtra', 'scales', 'corrplot', 'interactions'"
+RUN install_r_packages "${R_PACKAGES}" \
+  && check_r_packages "${R_PACKAGES}"
+
+RUN apt-get install --no-install-recommends --yes \
+    libmagick++-dev \
+  && apt-get upgrade --yes; apt-get clean
+RUN install_r_packages 'ggimage' \
+  && check_r_packages 'ggimage'
+
+ENV R_PACKAGES="'car', 'ape', 'lme4', 'nlme'"
+RUN install_r_packages "${R_PACKAGES}" \
+  && check_r_packages "${R_PACKAGES}"
+
+ENV R_PACKAGES="'ggh4x', 'ggpubr', 'ggrepel', 'ggforce', 'ggpp', 'ggstance'"
+RUN install_r_packages "${R_PACKAGES}" \
+  && check_r_packages "${R_PACKAGES}"
+
+ENV R_PACKAGES="'glmnet', 'EnvStats', 'vegan', 'janitor', 'rstatix'"
+RUN install_r_packages "${R_PACKAGES}" \
+  && check_r_packages "${R_PACKAGES}"
+
+ENV R_PACKAGES="'emmeans', 'randomForest', 'caret', 'mlr3', 'ROCR',  'ade4', 'Rtsne'"
+RUN install_r_packages "${R_PACKAGES}" \
+  && check_r_packages "${R_PACKAGES}"
+  
+RUN install_r_packages 'tidymodels' \
+  && check_r_packages 'tidymodels'
+
+RUN apt-get install --no-install-recommends --yes \
+    libudunits2-dev libgdal-dev \
+  && apt-get upgrade --yes; apt-get clean
+RUN install_r_packages 'sf' \
+  && check_r_packages 'sf'
+
+
+# Bioconductor
+
+RUN echo | openssl s_client -showcerts -servername bioconductor.org -connect bioconductor.org:443 > bioconductor.pem \
+  && cp bioconductor.pem /usr/local/share/ca-certificates/bioconductor.crt \
+  && update-ca-certificates
+RUN install_r_packages 'BiocManager' \
+  && check_r_packages 'BiocManager'
+
+ENV R_PACKAGES="'BiocGenerics', 'Biobase', 'S4Vectors', 'ShortRead', 'IRanges', 'zlibbioc', \
+  'XVector', 'UCSC.utils', 'GenomeInfoDbData', 'GenomeInfoDb', 'Biostrings', 'multtest'"
+RUN R -e "BiocManager::install(c(${R_PACKAGES}))" \
+  && check_r_packages "${R_PACKAGES}"
+
+ENV R_PACKAGES="'phyloseq'"
+RUN R -e "BiocManager::install(c(${R_PACKAGES}))" \
+  && check_r_packages "${R_PACKAGES}"
+
+ENV AUTHOR="christyray"
+ENV R_PACKAGES="'sciscales'"
+RUN R -e "remotes::install_github(paste0('${AUTHOR}/', c(${R_PACKAGES})))" \
+  && check_r_packages "${R_PACKAGES}"
+
+ENV AUTHOR="bbc"
+ENV R_PACKAGES="'bbplot'"
+RUN R -e "remotes::install_github(paste0('${AUTHOR}/', c(${R_PACKAGES})))" \
+  && check_r_packages "${R_PACKAGES}"
+
+ENV AUTHOR="schuyler-smith"
+ENV R_PACKAGES="'phylosmith', 'schuylR', 'schemeR'"
+RUN R -e "remotes::install_github(paste0('${AUTHOR}/', c(${R_PACKAGES})))" \
+  && check_r_packages "${R_PACKAGES}"
+
+CMD ["/bin/bash"]
+# docker build -t us-central1-docker.pkg.dev/bioinformatics-test-362721/workbench-r/workbench-r -f gcp-workbench .
+# docker push us-central1-docker.pkg.dev/bioinformatics-test-362721/workbench-r/workbench-r
